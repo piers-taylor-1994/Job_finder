@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+from json import *
 
 load_dotenv()
 
@@ -13,7 +14,9 @@ class Sites:
         self.url = url
         self.target_job_title = target_job_title
 
-SITES = [Sites("redgate", "https://www.red-gate.com/our-company/careers/current-opportunities/", "software engineer")]
+SITES = [
+    Sites("redgate", "https://www.red-gate.com/our-company/careers/current-opportunities/", "software engineer")
+]
 HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -42,15 +45,27 @@ def process_jobs(body, target_job_title, company, applied_jobs, jobs):
     output_jobs = []
 
     for job in jobs:
-        if target_job_title in job.getText().lower()  and job.getText().lower() not in applied_jobs:
+        if target_job_title in job.getText().lower() and job.getText().lower() not in applied_jobs:
             output_jobs.append(f"{job.getText()} {s.url + job["href"]}")
     return append_email_body(body, company, output_jobs)
 
 for s in SITES:
     site = requests.get(s.url, headers=HEADERS).text
     soup = BeautifulSoup(site, "html.parser")
-    with open(f"applied_jobs_{s.name}.txt") as file:
-        applied_jobs = file.read().lower().split("\n")
+    try:
+        with open("applied_jobs.json") as file:
+            applied_jobs = load(file)[s.name]
+    except FileNotFoundError:
+        new_dict = {s.name:[] for s in SITES}
+        dump(new_dict, open("applied_jobs.json", "w"), indent=4)
+        applied_jobs = []
+    except KeyError:
+        with open("applied_jobs.json") as file:
+            current_dict = load(file)
+            current_dict.update({s.name: []})
+            dump(current_dict, open("applied_jobs.json", "w"), indent=4)
+    except JSONDecodeError:
+        dump({}, open("applied_jobs.json", "w"), indent=4)
 
     if s.name == "redgate":     
         jobs_section = soup.find(class_="tabbed__content")
@@ -59,8 +74,10 @@ for s in SITES:
                 if "cambridge" in location_section.getText().lower() and s.target_job_title in location_section.getText().lower():
                     email_body = process_jobs(email_body, s.target_job_title, s.name, applied_jobs, location_section.select(".list--bare li a"))
 
-with open("log.txt", "a") as file:
-    file.write(f"Run: {str(datetime.now())[:19]} \n")
+try:
+    open("log.txt", "a").write(f"Run: {str(datetime.now())[:19]} \n")
+except FileNotFoundError:
+    open("log.txt", "w").write(f"Run: {str(datetime.now())[:19]} \n")
             
 if email_body:
     with smtplib.SMTP(os.environ["SMTP_ADDRESS"], port=587) as connection:
