@@ -52,18 +52,17 @@ def process_jobs(body, target_job_title, company, applied_jobs, jobs):
 for s in SITES:
     site = requests.get(s.url, headers=HEADERS).text
     soup = BeautifulSoup(site, "html.parser")
+    applied_jobs = []
+
     try:
-        with open("applied_jobs.json") as file:
-            applied_jobs = load(file)[s.name]
+        applied_jobs = load(open("applied_jobs.json"))[s.name]
     except FileNotFoundError:
         new_dict = {s.name:[] for s in SITES}
         dump(new_dict, open("applied_jobs.json", "w"), indent=4)
-        applied_jobs = []
     except KeyError:
-        with open("applied_jobs.json") as file:
-            current_dict = load(file)
-            current_dict.update({s.name: []})
-            dump(current_dict, open("applied_jobs.json", "w"), indent=4)
+        current_dict = load(open("applied_jobs.json"))
+        current_dict.update({s.name: []})
+        dump(current_dict, open("applied_jobs.json", "w"), indent=4)
     except JSONDecodeError:
         dump({}, open("applied_jobs.json", "w"), indent=4)
 
