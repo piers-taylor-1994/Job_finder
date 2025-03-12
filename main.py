@@ -73,10 +73,7 @@ for s in SITES:
                 if "cambridge" in location_section.getText().lower() and s.target_job_title in location_section.getText().lower():
                     email_body = process_jobs(email_body, s.target_job_title, s.name, applied_jobs, location_section.select(".list--bare li a"))
 
-try:
-    open("log.txt", "a").write(f"Run: {str(datetime.now())[:19]} \n")
-except FileNotFoundError:
-    open("log.txt", "w").write(f"Run: {str(datetime.now())[:19]} \n")
+open("log.txt", "a").write(f"Run: {str(datetime.now())[:19]} \n")
             
 if email_body:
     with smtplib.SMTP(os.environ["SMTP_ADDRESS"], port=587) as connection:
