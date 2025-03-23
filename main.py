@@ -55,16 +55,21 @@ for s in SITES:
     applied_jobs = []
 
     try:
-        applied_jobs = load(open("applied_jobs.json"))[s.name]
+        with open("applied_jobs.json") as file:
+            applied_jobs = load(file)[s.name]
     except FileNotFoundError:
         new_dict = {s.name:[] for s in SITES}
-        dump(new_dict, open("applied_jobs.json", "w"), indent=4)
+        with open("applied_jobs.json", "w") as file:
+            dump(new_dict, file, indent=4)
     except KeyError:
-        current_dict = load(open("applied_jobs.json"))
-        current_dict.update({s.name: []})
-        dump(current_dict, open("applied_jobs.json", "w"), indent=4)
+        with open("applied_jobs.json") as file:
+            current_dict = load(file)
+            current_dict.update({s.name: []})
+        with open("applied_jobs.json", "w") as file2:
+            dump(current_dict, file2, indent=4)
     except JSONDecodeError:
-        dump({}, open("applied_jobs.json", "w"), indent=4)
+        with open("applied_jobs.json", "w") as file:
+            dump({}, file, indent=4)
 
     if s.name == "redgate":     
         jobs_section = soup.find(class_="tabbed__content")
@@ -73,7 +78,8 @@ for s in SITES:
                 if "cambridge" in location_section.getText().lower() and s.target_job_title in location_section.getText().lower():
                     email_body = process_jobs(email_body, s.target_job_title, s.name, applied_jobs, location_section.select(".list--bare li a"))
 
-open("log.txt", "a").write(f"Run: {str(datetime.now())[:19]} \n")
+with open("log.txt", "a") as file:
+    file.write(f"Run: {str(datetime.now())[:19]} \n")
             
 if email_body:
     with smtplib.SMTP(os.environ["SMTP_ADDRESS"], port=587) as connection:
